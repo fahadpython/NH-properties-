@@ -11,9 +11,17 @@ export function Properties() {
 
   useEffect(() => {
     fetch('/api/properties')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch properties');
+        return res.json();
+      })
       .then(data => {
         setProperties(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch Error:", err);
+        setProperties([]); // fallback to empty
         setLoading(false);
       });
   }, []);
