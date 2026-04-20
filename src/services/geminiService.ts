@@ -1,10 +1,23 @@
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// We initialize this lazily so it doesn't crash the entire app on load if the env var is missing on Vercel
+let ai: GoogleGenAI | null = null;
+
+function getAI() {
+  if (!ai) {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) {
+      console.error("GEMINI_API_KEY is missing!");
+    }
+    ai = new GoogleGenAI({ apiKey: key || 'missing_key' });
+  }
+  return ai;
+}
 
 export async function askMatchmaker(userMessage: string, properties: any[], chatHistory: any[]): Promise<string> {
+  const currentAi = getAI();
   try {
-    const chat = ai.chats.create({
+    const chat = currentAi.chats.create({
       model: "gemini-2.5-flash",
       config: {
         systemInstruction: `You are the NH Properties matching assistant. Your ultimate goal is to ACT LIKE A CLOSER and schedule a viewing for the customer.
@@ -23,7 +36,7 @@ ${JSON.stringify(properties, null, 2)}
     // We can't directly supply all chat history if it's too unstructured here, 
     // but what we can do is let the frontend keep a continuous chat object, or we can just send the latest.
     // Since this function might run ephemerally, I'll just send the message with history context if we want.
-    // Or we can rebuild the conversation. For simplicity, since the user asks via \`askMatchmaker\`, we'll include chatHistory in the prompt.
+    // Or we can rebuild the conversation. For simplicity, since the user asks via `askMatchmaker`, we'll include chatHistory in the prompt.
     
     let contents = `Here is the chat history:\n`;
     chatHistory.forEach(msg => {
@@ -31,7 +44,7 @@ ${JSON.stringify(properties, null, 2)}
     });
     contents += `\nCustomer: ${userMessage}\nAgent:`;
 
-    const response = await ai.models.generateContent({
+    const response = await currentAi.models.generateContent({
       model: "gemini-2.5-flash",
       contents: contents,
       config: {
@@ -59,6 +72,7 @@ Instructions:
 }
 
 export async function estimatePropertyPrice(location: string, bhk: string, sqft: string, type: 'buy' | 'rent'): Promise<{ estimateRange: string, explanation: string, marketTrend: string, rentOrBuyAdvice: string }> {
+  const currentAi = getAI();
   try {
     const prompt = `
 You are an expert Real Estate AI Appraiser for Mumbai and surrounding areas.
@@ -79,7 +93,7 @@ Return your answer purely as a JSON object with strictly these keys:
 No Markdown formatting around the JSON. Return only the raw JSON.
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await currentAi.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -103,6 +117,7 @@ No Markdown formatting around the JSON. Return only the raw JSON.
 }
 
 export async function magicPolishProperty(rawMessage: string): Promise<any> {
+  const currentAi = getAI();
   try {
     const prompt = `
 You are a Real Estate Assistant. Make this raw WhatsApp message into a professional property listing.
@@ -121,7 +136,7 @@ Return a JSON object with EXACTLY these keys:
 }
 No Markdown formatting around the JSON. Return only the raw JSON.`;
 
-    const response = await ai.models.generateContent({
+    const response = await currentAi.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
