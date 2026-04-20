@@ -3,6 +3,7 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { getSheetData, mapRowsToProperties, mapRowsToRates, appendSheetData } from './sheets.js';
+import { magicPolishProperty } from './src/services/geminiService.js';
 
 // In-memory fallback and cache
 let properties = [
@@ -174,20 +175,32 @@ async function startServer() {
       if (req.body.mediaUrl) mediaUrls.push(req.body.mediaUrl);
       if (mediaUrls.length === 0) mediaUrls.push("https://images.unsplash.com/photo-1628624747186-a941c476b7ef?auto=format&fit=crop&w=800&q=80");
 
+      let extracted;
+      try {
+        const aiExtracted = await magicPolishProperty(messageBody);
+        
+        if (aiExtracted) {
+          extracted = aiExtracted;
+        }
+      } catch (err) {
+        console.error("Failed to use Magic Polish", err);
+      }
 
-      const bhkMatch = messageBody.match(/(\d+)\s*bhk/i);
-      const priceMatch = messageBody.match(/₹?\s*(\d+\.?\d*)\s*(Cr|Lakh|k)/i);
-      
-      const extracted = {
-        title: bhkMatch ? `${bhkMatch[1]} BHK Apartment in ${messageBody.includes('Lokhandwala') ? 'Lokhandwala' : 'Andheri'}` : "New Property Listing",
-        location: messageBody.includes('Lokhandwala') ? "Lokhandwala, Andheri West" : "Andheri West, Mumbai",
-        type: messageBody.toLowerCase().includes('rent') ? "rent" : "sale",
-        bhk: bhkMatch ? parseInt(bhkMatch[1]) : 2,
-        price: priceMatch ? `₹${priceMatch[1]} ${priceMatch[2]}` : (messageBody.toLowerCase().includes('rent') ? "₹65,000/mo" : "₹2.5 Cr"),
-        area: "Approx 1000 sqft",
-        description: messageBody.substring(0, 150) + "...",
-        amenities: "Parking, Lift, Security"
-      };
+      // Fallback to regex if AI fails or throws
+      if (!extracted) {
+        const bhkMatch = messageBody.match(/(\d+)\s*bhk/i);
+        const priceMatch = messageBody.match(/₹?\s*(\d+\.?\d*)\s*(Cr|Lakh|k)/i);
+        extracted = {
+          title: bhkMatch ? `${bhkMatch[1]} BHK Apartment in ${messageBody.includes('Lokhandwala') ? 'Lokhandwala' : 'Andheri'}` : "New Property Listing",
+          location: messageBody.includes('Lokhandwala') ? "Lokhandwala, Andheri West" : "Andheri West, Mumbai",
+          type: messageBody.toLowerCase().includes('rent') ? "rent" : "sale",
+          bhk: bhkMatch ? parseInt(bhkMatch[1]) : 2,
+          price: priceMatch ? `₹${priceMatch[1]} ${priceMatch[2]}` : (messageBody.toLowerCase().includes('rent') ? "₹65,000/mo" : "₹2.5 Cr"),
+          area: "Approx 1000 sqft",
+          description: messageBody.substring(0, 150) + "...",
+          amenities: "Parking, Lift, Security"
+        };
+      }
 
       const newRow = [
         `prop_${Date.now()}`,

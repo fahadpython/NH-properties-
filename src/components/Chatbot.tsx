@@ -28,7 +28,9 @@ export default function Chatbot({ properties }: { properties: any[] }) {
     setIsLoading(true);
 
     try {
-      const responseText = await askMatchmaker(userText, properties, messages);
+      // Token Trimmer: Only send the last 4 messages to the AI to save API costs
+      const recentHistory = messages.slice(-4);
+      const responseText = await askMatchmaker(userText, properties, recentHistory);
       setMessages([...newChatHistory, { role: 'agent', text: responseText }]);
     } catch (error) {
       setMessages([...newChatHistory, { role: 'agent', text: 'Oops, something went wrong connecting to my brain. Please call us!' }]);

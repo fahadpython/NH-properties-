@@ -101,3 +101,41 @@ No Markdown formatting around the JSON. Return only the raw JSON.
     };
   }
 }
+
+export async function magicPolishProperty(rawMessage: string): Promise<any> {
+  try {
+    const prompt = `
+You are a Real Estate Assistant. Make this raw WhatsApp message into a professional property listing.
+Raw Message: "${rawMessage}"
+
+Return a JSON object with EXACTLY these keys:
+{
+  "title": "A catchy, professional title (e.g. 'Sunlit 3BHK Luxury Haven in Lokhandwala')",
+  "location": "Best guess at the Mumbai neighborhood/area",
+  "type": "sale or rent (guess based on price/text. If rent, typical price is small per month. If sale, it's Cr/Lakhs)",
+  "bhk": "integer (number of bedrooms. default to 2 if unknown)",
+  "price": "Formatted price (e.g. '₹2.5 Cr' or '₹65,000/mo')",
+  "area": "Approximate sqft or default 'Approx 1000 sqft'",
+  "description": "A polished 3-sentence sales pitch based on the shorthand notes. If no notes, make a generic appealing one.",
+  "amenities": "Comma separated string of amenities (e.g. 'Parking, Lift, Security'). Guess reasonable ones if none provided."
+}
+No Markdown formatting around the JSON. Return only the raw JSON.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text);
+    }
+    throw new Error("No text from Gemini");
+  } catch (error) {
+    console.error("Gemini Magic Polish Error:", error);
+    // Fallback if AI fails
+    return null;
+  }
+}
