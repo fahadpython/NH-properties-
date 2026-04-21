@@ -8,11 +8,15 @@ export function Properties() {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTips, setShowTips] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/properties')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch properties');
+      .then(async res => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error('Server returned ' + res.status + ': ' + text);
+        }
         return res.json();
       })
       .then(data => {
@@ -21,6 +25,7 @@ export function Properties() {
       })
       .catch(err => {
         console.error("Fetch Error:", err);
+        setErrorMsg(err.message);
         setProperties([]); // fallback to empty
         setLoading(false);
       });
@@ -30,6 +35,16 @@ export function Properties() {
     return (
       <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="h-[calc(100vh-64px)] w-full flex flex-col items-center justify-center bg-black p-8 text-center text-white">
+        <h2 className="text-red-500 text-2xl mb-4">Connection Error</h2>
+        <p className="text-white/70 mb-4">{errorMsg}</p>
+        <p className="text-white/50 text-sm">Please check Vercel logs or ensure the Google Service Account is configured perfectly as one single line of JSON.</p>
       </div>
     );
   }
