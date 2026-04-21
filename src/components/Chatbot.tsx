@@ -46,9 +46,10 @@ export default function Chatbot({ properties }: { properties: any[] }) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-black/80 backdrop-blur-md text-white p-4 rounded-full shadow-2xl border border-white/10"
+        className="fixed bottom-6 right-6 z-50 bg-indigo-600 backdrop-blur-md text-white px-5 py-4 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] border border-indigo-400/30 flex items-center gap-3 font-medium tracking-wide"
       >
         <MessageCircle size={24} />
+        AI Guide
       </motion.button>
 
       {/* Chat Window */}

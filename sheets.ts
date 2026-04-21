@@ -56,11 +56,28 @@ export function mapRowsToProperties(rows: any[][]) {
   return rows.slice(1).map((row, index) => {
     const item: any = {};
     headers.forEach((header: string, i: number) => {
-      item[header.toLowerCase()] = row[i];
+      if (header) {
+        item[header.toLowerCase().trim()] = row[i];
+      }
     });
-    // Ensure numeric types
-    if (item.bhk) item.bhk = parseInt(item.bhk);
-    if (item.amenities) item.amenities = item.amenities.split(',').map((s: string) => s.trim());
+
+    try {
+      // Ensure numeric types
+      if (item.bhk) {
+        const parsedBhk = parseInt(item.bhk);
+        item.bhk = isNaN(parsedBhk) ? item.bhk : parsedBhk;
+      }
+      
+      // Parse amenities safely
+      if (item.amenities && typeof item.amenities === 'string') {
+        item.amenities = item.amenities.split(',').map((s: string) => s.trim()).filter(Boolean);
+      } else if (!Array.isArray(item.amenities)) {
+        item.amenities = [];
+      }
+    } catch (e) {
+      console.warn("Row parse issue:", e);
+    }
+    
     if (!item.id) item.id = `sheet_${index}`;
     return item;
   });

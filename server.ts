@@ -61,14 +61,19 @@ app.use(express.urlencoded({ extended: true }));
 
   // Get all properties (Prefers Google Sheets)
   app.get('/api/properties', async (req, res) => {
-    const rows = await getSheetData('Properties!A:J');
-    if (rows) {
-      const sheetProps = mapRowsToProperties(rows);
-      // Merge spreadsheet data with any WhatsApp volatile data
-      const merged = [...sheetProps, ...properties.filter(p => p.source === 'whatsapp')];
-      return res.json(merged);
+    try {
+      const rows = await getSheetData('Properties!A:J');
+      if (rows && rows.length > 1) {
+        const sheetProps = mapRowsToProperties(rows);
+        // Merge spreadsheet data with any WhatsApp volatile data
+        const merged = [...sheetProps, ...properties.filter(p => p.source === 'whatsapp')];
+        return res.json(merged);
+      }
+      res.json(properties);
+    } catch (err: any) {
+      console.error("API Properties Error:", err);
+      res.status(500).json({ error: "Failed fetching properties", details: err.message });
     }
-    res.json(properties);
   });
 
   // Get single property
